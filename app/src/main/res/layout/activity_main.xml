@@ -21,12 +21,12 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Mime-type: " />
+                android:text="@string/mime_label" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Data: " />
+                android:text="@string/payload_label" />
 
         </LinearLayout>
 
@@ -54,30 +54,45 @@
         android:id="@+id/read_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Read" />
+        android:text="@string/read" />
 
     <Button
         android:id="@+id/copy_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Copy" />
+        android:text="@string/copy" />
 
     <EditText
         android:id="@+id/mime_edit"
-        android:hint="Mime-type"
+        android:hint="@string/mime_hint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
     <EditText
         android:id="@+id/data_edit"
-        android:hint="Data"
+        android:hint="@string/payload_hint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
-    <Button
-        android:id="@+id/write_button"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Write" />
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/write_once_button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="@string/write_once" />
+
+        <Button
+            android:id="@+id/write_batch_button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="@string/write_batch" />
+
+    </LinearLayout>
 
 </LinearLayout>

@@ -1,6 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">NFCTagWriter</string>
+    <string name="app_name">NFC Tag I/O</string>
+
+    <!-- UI elements -->
+    <string name="payload_label">Payload: </string>
+    <string name="mime_label">Mime-type: </string>
+    <string name="read">Read</string>
+    <string name="copy">Copy</string>
+    <string name="mime_hint">Mime-type</string>
+    <string name="payload_hint">Payload</string>
+    <string name="write_once">Write once</string>
+    <string name="write_batch">Write batch</string>
+    <string name="dialog_title_read">Bring tag near to read</string>
+    <string name="dialog_title_write_once">Bring tag near to write once</string>
+    <string name="dialog_title_write_batch">Bring tags near to write batch</string>
+
+    <!-- Log messages -->
+    <string name="error_no_adapter">No NFCAdapter found</string>
+    <string name="error_empty_tag">Empty tag</string>
+    <string name="error_empty_mime">Mime-type cannot be empty</string>
+    <string name="error_write">Writing failed</string>
+    <string name="error_writable">Tag not writable</string>
+    <string name="error_space">Not enough space to write on tag</string>
+    <string name="error_format">Format not supported</string>
+    <string name="success_read">Tag read</string>
+    <string name="success_write">Message writed</string>
+    <string name="info">Drop tag, not actively listening&#8230;</string>
 
 </resources>

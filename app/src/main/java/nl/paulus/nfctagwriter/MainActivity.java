@@ -21,18 +21,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 /**
- * Activity to read/write NFC tags with own Mime-Type and Data
+ * Activity to read/copy/write once/batch NFC tags with custom Mime-Type and Payload
  * Based on the excellent tutorial by Jesse Chen
  * http://www.jessechen.net/blog/how-to-nfc-on-the-android-platform/
  */
-public class MainActivity extends Activity
+public final class MainActivity extends Activity
 {
-	private static final String TAG = MainActivity.class.getName();
-	
 	private static final int DISABLE_MODE = 0;
 	private static final int READ_MODE = 1;
-	private static final int WRITE_MODE = 2;
-	int mMode = DISABLE_MODE;
+	private static final int WRITE_ONCE_MODE = 2;
+	private static final int WRITE_BATCH_MODE = 3;
+	private int mMode = DISABLE_MODE;
 	
 	private NfcAdapter mNfcAdapter;
 	private PendingIntent mNfcPendingIntent;
@@ -41,6 +40,7 @@ public class MainActivity extends Activity
 	private TextView mDataText;
 	private EditText mMimeEdit;
 	private EditText mDataEdit;
+	private AlertDialog mAlertDialog;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
@@ -52,10 +52,11 @@ public class MainActivity extends Activity
 		mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
 		if (mNfcAdapter == null)
 		{
-			Toast.makeText(MainActivity.this, "NFCAdapter not found",
-						   Toast.LENGTH_SHORT)
+			Toast.makeText(MainActivity.this,
+						   getResources().getString(R.string.error_no_adapter),
+						   Toast.LENGTH_LONG)
 				 .show();
-			return;
+			finish();
 		}
 		
 		mNfcPendingIntent = PendingIntent.getActivity(this,
@@ -74,10 +75,13 @@ public class MainActivity extends Activity
 			@Override
 			public void onClick(View v)
 			{
+				mMimeText.setText(null);
+				mDataText.setText(null);
+				
 				enableTagDiscovery(READ_MODE);
 				
-				new AlertDialog.Builder(MainActivity.this)
-						.setTitle("Touch tag to read")
+				mAlertDialog = new AlertDialog.Builder(MainActivity.this)
+						.setTitle(getResources().getString(R.string.dialog_title_read))
 						.setOnCancelListener(new DialogInterface.OnCancelListener()
 						{
 							@Override
@@ -85,28 +89,36 @@ public class MainActivity extends Activity
 							{
 								disableTagDiscovery();
 							}
-						}).create()
-						.show();
+						})
+						.setOnDismissListener(new DialogInterface.OnDismissListener() {
+							@Override
+							public void onDismiss(DialogInterface dialogInterface)
+							{
+								disableTagDiscovery();
+							}
+						}).create();
+				mAlertDialog.show();
 			}
 		});
 		
-		findViewById(R.id.write_button).setOnClickListener(new OnClickListener()
+		findViewById(R.id.write_once_button).setOnClickListener(new OnClickListener()
 		{
 			@Override
 			public void onClick(View v)
 			{
 				if (mMimeEdit.getText().length() <= 0)
 				{
-					Toast.makeText(MainActivity.this, "Mime-type cannot be empty",
-								   Toast.LENGTH_SHORT)
+					Toast.makeText(MainActivity.this,
+								   getResources().getString(R.string.error_empty_mime),
+								   Toast.LENGTH_LONG)
 						 .show();
 					return;
 				}
 				
-				enableTagDiscovery(WRITE_MODE);
+				enableTagDiscovery(WRITE_ONCE_MODE);
 				
-				new AlertDialog.Builder(MainActivity.this)
-						.setTitle("Touch tag to write")
+				mAlertDialog = new AlertDialog.Builder(MainActivity.this)
+						.setTitle(getResources().getString(R.string.dialog_title_write_once))
 						.setOnCancelListener(new DialogInterface.OnCancelListener()
 						{
 							@Override
@@ -114,8 +126,47 @@ public class MainActivity extends Activity
 							{
 								disableTagDiscovery();
 							}
-						}).create()
-						.show();
+						})
+						.setOnDismissListener(new DialogInterface.OnDismissListener() {
+							@Override
+							public void onDismiss(DialogInterface dialogInterface)
+							{
+								disableTagDiscovery();
+							}
+						}).create();
+				mAlertDialog.show();
+			}
+		});
+		
+		findViewById(R.id.write_batch_button).setOnClickListener(new OnClickListener()
+		{
+			@Override
+			public void onClick(View v)
+			{
+				if (mMimeEdit.getText().length() <= 0)
+				{
+					Toast.makeText(MainActivity.this,
+								   getResources().getString(R.string.error_empty_mime),
+								   Toast.LENGTH_LONG)
+						 .show();
+					return;
+				}
+				
+				enableTagDiscovery(WRITE_BATCH_MODE);
+				
+				mAlertDialog = new AlertDialog.Builder(MainActivity.this)
+						.setTitle(getResources().getString(R.string.dialog_title_write_batch))
+						.setOnCancelListener(new DialogInterface.OnCancelListener()
+						{
+							@Override
+							public void onCancel(DialogInterface dialog)
+							{
+								disableTagDiscovery();
+								mAlertDialog = null;
+							}
+						})
+						.create();
+				mAlertDialog.show();
 			}
 		});
 		
@@ -159,15 +210,25 @@ public class MainActivity extends Activity
 					if (rawMessages == null
 						|| rawMessages.length <= 0)
 					{
-						Toast.makeText(this, "NFC tag is empty", Toast.LENGTH_LONG).show();
+						Toast.makeText(this, getResources().getString(R.string.error_empty_tag),
+									   Toast.LENGTH_LONG)
+							 .show();
+						return;
 					}
 					
 					record = ((NdefMessage) rawMessages[0]).getRecords()[0];
 					mMimeText.setText(new String(record.getType()));
 					mDataText.setText(new String(record.getPayload()));
-					Toast.makeText(this, "Tag read", Toast.LENGTH_LONG).show();
+					Toast.makeText(this, getResources().getString(R.string.success_read),
+								   Toast.LENGTH_LONG)
+						 .show();
+					mAlertDialog.dismiss();
+					mAlertDialog = null;
 					break;
-				case WRITE_MODE:
+				case WRITE_ONCE_MODE:
+				case WRITE_BATCH_MODE:
+					boolean batch = mMode == WRITE_BATCH_MODE;
+					
 					Tag discoveredTag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
 					
 					record = NdefRecord.createMime(mMimeEdit.getText().toString(),
@@ -175,19 +236,24 @@ public class MainActivity extends Activity
 					NdefMessage message = new NdefMessage(new NdefRecord[] {record});
 					if (writeTag(message, discoveredTag))
 					{
-						Toast.makeText(this, "NFC tag message writing successful",
-									   Toast.LENGTH_LONG)
+						Toast.makeText(this, getResources().getString(R.string.success_write),
+									   batch ? Toast.LENGTH_SHORT : Toast.LENGTH_LONG)
 							 .show();
 					}
 					else
 					{
-						Toast.makeText(this, "NFC Tag writing failed",
-									   Toast.LENGTH_LONG)
+						Toast.makeText(this, getResources().getString(R.string.error_write),
+									   batch ? Toast.LENGTH_SHORT : Toast.LENGTH_LONG)
 							 .show();
+					}
+					if (! batch)
+					{
+						mAlertDialog.dismiss();
+						mAlertDialog = null;
 					}
 					break;
 				default:
-					Toast.makeText(this, "Drop discovered tag, not actively listening...",
+					Toast.makeText(this, getResources().getString(R.string.info),
 								   Toast.LENGTH_SHORT)
 						 .show();
 					break;
@@ -198,7 +264,7 @@ public class MainActivity extends Activity
 	/**
 	 * Writes an NdefMessage to a NFC tag
 	 */
-	public boolean writeTag(NdefMessage message, Tag tag)
+	private boolean writeTag(NdefMessage message, Tag tag)
 	{
 	    int size = message.toByteArray().length;
 	    try
@@ -209,14 +275,16 @@ public class MainActivity extends Activity
 	            ndef.connect();
 	            if (! ndef.isWritable())
 	            {
-					Toast.makeText(MainActivity.this, "Tag is not writable",
+					Toast.makeText(MainActivity.this,
+								   getResources().getString(R.string.error_writable),
 								   Toast.LENGTH_SHORT)
 						 .show();
 	                return false;
 	            }
 	            if (ndef.getMaxSize() < size)
 	            {
-					Toast.makeText(MainActivity.this, "Tag is too small",
+					Toast.makeText(MainActivity.this,
+								   getResources().getString(R.string.error_space),
 								   Toast.LENGTH_SHORT)
 						 .show();
 	                return false;
@@ -229,7 +297,8 @@ public class MainActivity extends Activity
 	            NdefFormatable format = NdefFormatable.get(tag);
 	            if (format == null)
 	            {
-					Toast.makeText(MainActivity.this, "Tag format is not supported",
+					Toast.makeText(MainActivity.this,
+								   getResources().getString(R.string.error_format),
 								   Toast.LENGTH_SHORT)
 						 .show();
 					return false;
